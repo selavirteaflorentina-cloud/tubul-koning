@@ -1,0 +1,683 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Tubul König</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: banc de laborator. Sus aparatele (generator + osciloscop), apoi tubul cu rigla, apoi măsurătorile și tabelul. Accentul tare este ecranul osciloscopului, restul rămâne liniștit. */
+:root{
+  --bg:#E8EDF0; --panel:#F7F9FA; --panel-2:#EAF0F2; --ink:#13232B; --muted:#52666F; --line:#C3CFD5;
+  --accent:#0A7480; --accent-strong:#075A63; --on-accent:#FFFFFF;
+  --good:#1B7F4B; --warn:#8F5200; --bad:#B3261E; --tube:#5B7480;
+  --scope-bg:#07120D; --scope-grid:#173226; --scope-axis:#2C5841; --scope-trace:#6BFFA8;
+  --lcd-bg:#0C1418; --lcd-fg:#F5B83D;
+  --font-label:'Barlow Condensed','Arial Narrow',sans-serif;
+  --font-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E171B; --panel:#162127; --panel-2:#1C2A31; --ink:#E4EEF1; --muted:#92A8B1; --line:#2C3E46;
+    --accent:#4FCBD8; --accent-strong:#7FDCE6; --on-accent:#052A2F;
+    --good:#5FD38E; --warn:#E0A44A; --bad:#FF8A80; --tube:#7C96A2; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E171B; --panel:#162127; --panel-2:#1C2A31; --ink:#E4EEF1; --muted:#92A8B1; --line:#2C3E46;
+  --accent:#4FCBD8; --accent-strong:#7FDCE6; --on-accent:#052A2F;
+  --good:#5FD38E; --warn:#E0A44A; --bad:#FF8A80; --tube:#7C96A2; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 var(--font-body);
+  padding-block:28px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.page{max-width:1080px;margin:0 auto;display:grid;gap:16px;min-width:0}
+.page>*{min-width:0}
+.mono{font-family:var(--font-mono)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.head{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:760px){.head{grid-template-columns:1fr auto;align-items:end}}
+.kicker{font:600 14px/1 var(--font-label);letter-spacing:.16em;text-transform:uppercase;color:var(--accent-strong);margin:0 0 10px}
+h1{font:600 clamp(2.7rem,9vw,4.2rem)/.95 var(--font-label);letter-spacing:.01em;margin:0 0 12px;text-wrap:balance}
+.lede{margin:0;max-width:62ch;color:var(--muted)}
+.head-side{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.thermo{display:flex;flex-direction:column;gap:2px;padding:8px 14px;border:1px solid var(--line);background:var(--panel);border-radius:4px}
+.thermo .lab{font:600 13px/1 var(--font-label);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.thermo .val{font-size:1.5rem;line-height:1.2}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+h2{font:600 17px/1 var(--font-label);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+.flabel{font:600 14px/1.1 var(--font-label);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.field{display:grid;gap:6px}
+.stack{display:grid;gap:14px}
+
+details.theory summary{cursor:pointer;font:600 17px/1.2 var(--font-label);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+details.theory[open] summary{margin-bottom:12px}
+.theory-body{display:grid;gap:10px;max-width:74ch}
+.theory-body p,.theory-body ul{margin:0}
+.theory-body ul{padding-left:20px;display:grid;gap:4px}
+.formula{background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:8px 12px;font-size:14px;overflow-x:auto}
+
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));counter-reset:st}
+.steps li{counter-increment:st;border-top:3px solid var(--line);padding-top:8px;font-size:13.5px;line-height:1.35;color:var(--muted)}
+.steps li::before{content:counter(st);display:block;font:500 12px/1 var(--font-mono);margin-bottom:4px}
+.steps li[data-state="current"]{border-top-color:var(--accent);color:var(--ink);font-weight:600}
+.steps li[data-state="done"]{border-top-color:var(--good);color:var(--ink)}
+.steps li[data-state="done"]::before{content:"✓";color:var(--good)}
+.hint{display:flex;gap:12px;align-items:baseline;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:10px 14px;margin:0}
+.hint b{font:600 14px/1 var(--font-label);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-strong);flex:none}
+
+.bench{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:900px){.bench{grid-template-columns:minmax(280px,330px) minmax(0,1fr)}}
+
+.lcd{background:var(--lcd-bg);color:var(--lcd-fg);font:500 2.3rem/1 var(--font-mono);padding:16px;border-radius:4px;text-align:right;letter-spacing:.03em;border:1px solid var(--line);min-height:68px}
+.lcd small{font-size:1rem;margin-left:6px;opacity:.85}
+.lcd.off{color:#3a4a52}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 0;min-width:64px}
+
+.btn,.sw,.seg button,.icon-btn{font:600 14px var(--font-body);color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:4px;cursor:pointer;min-height:42px;padding:8px 12px}
+.btn:hover,.sw:hover,.seg button:hover,.icon-btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+:root:not([data-theme="dark"]) .btn.primary:hover{color:#fff}
+.btn:disabled,.sw:disabled,.seg button:disabled,input:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sw{display:flex;align-items:center;gap:10px;width:100%;text-align:left}
+.sw-track{flex:none;width:34px;height:18px;border-radius:9px;background:var(--line);position:relative;transition:background .15s}
+.sw-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--panel);transition:transform .15s}
+.sw[aria-pressed="true"] .sw-track{background:var(--accent)}
+.sw[aria-pressed="true"] .sw-knob{transform:translateX(16px)}
+.sw-label{flex:1;min-width:0}
+.sw-state{font:500 12px var(--font-mono);color:var(--muted)}
+.sw[aria-pressed="true"] .sw-state{color:var(--accent-strong)}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px;margin:0}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.seg button{padding:8px 4px;font-family:var(--font-mono);font-weight:500;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.val-line{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.val-line .mono{font-size:13px;color:var(--muted)}
+
+.screen{display:block;width:100%;max-width:640px;aspect-ratio:10/8;border-radius:4px;border:1px solid var(--line);background:var(--scope-bg)}
+.scope-grid{display:grid;gap:14px}
+.scope-head{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.readout{font:500 15px/1.4 var(--font-mono);padding:8px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;max-width:640px}
+.knobs{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:700px){.knobs{grid-template-columns:1fr 1fr 1fr}}
+
+.tube-svg{display:block;width:100%;height:auto;max-width:720px}
+.svg-label{font:500 13px var(--font-body);fill:var(--muted)}
+.svg-label.acc{fill:var(--accent-strong);font-weight:600}
+.svg-num{font:500 12px var(--font-mono);fill:var(--muted)}
+.dev-fill{fill:var(--panel-2);stroke:var(--tube);stroke-width:1.5}
+.tube-out{fill:none;stroke:var(--tube);stroke-width:16;stroke-linejoin:round}
+.tube-in{fill:none;stroke:var(--panel);stroke-width:11;stroke-linejoin:round}
+.mob-out{fill:none;stroke:var(--accent);stroke-width:16;stroke-linejoin:round}
+.ruler-band{fill:var(--panel-2);stroke:var(--line)}
+.tick{stroke:var(--muted);stroke-width:1}
+.ptr{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 3}
+.ptr-tri{fill:var(--accent)}
+.flag{stroke:var(--accent-strong);stroke-width:2}
+.flag-t{font:600 11px var(--font-mono);fill:var(--accent-strong)}
+.tube-ctl{display:grid;gap:16px;grid-template-columns:1fr;margin-top:14px}
+@media(min-width:760px){.tube-ctl{grid-template-columns:minmax(220px,260px) minmax(0,1fr);align-items:start}}
+.big{font:500 2rem/1.1 var(--font-mono)}
+.sub-read{font:400 14px var(--font-mono);color:var(--muted)}
+
+.measure{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:900px){.measure{grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr)}}
+.chart{display:block;width:100%;height:230px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0}
+.chips li{display:flex;align-items:center;gap:2px;border:1px solid var(--line);background:var(--panel-2);border-radius:4px;padding:2px 2px 2px 10px;font:500 13px var(--font-mono)}
+.icon-btn{min-height:30px;min-width:30px;padding:0 8px;line-height:1}
+.note{margin:0;min-height:1.5em;color:var(--warn);font-size:14px}
+.note:empty{display:none}
+.muted{color:var(--muted)}
+
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:780px}
+th,td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line);font:400 13.5px var(--font-mono);font-variant-numeric:tabular-nums}
+th{font:600 14px var(--font-label);letter-spacing:.06em;color:var(--muted);text-transform:none;white-space:nowrap}
+td.vm{font-weight:500;color:var(--accent-strong)}
+td.empty{text-align:left;font:400 14px var(--font-body);color:var(--muted);padding:14px 6px}
+.table-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+textarea.tsv{width:100%;min-height:90px;margin-top:10px;font:12px var(--font-mono);background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px}
+dl.results{display:grid;gap:14px 28px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:18px 0 0}
+dl.results dt{font-size:13px;color:var(--muted);line-height:1.3}
+dl.results dd{margin:2px 0 0;font:500 1.3rem/1.3 var(--font-mono)}
+.res-msg{margin:12px 0 0;font-size:14px}
+.foot{font-size:13px;color:var(--muted);margin:0}
+@media(prefers-reduced-motion:reduce){.sw-track,.sw-knob{transition:none}}
+</style>
+
+<div class="page">
+  <header class="head">
+    <div>
+      <p class="kicker">Lucrare de laborator · Acustică</p>
+      <h1>Tubul König</h1>
+      <p class="lede">Determinarea vitezei sunetului în aer prin metoda interferenței. Lucrezi ca în laborator: pornești aparatele, le conectezi, le reglezi, cauți minimele și completezi tabelul. La fiecare deschidere a paginii temperatura și decalajul inițial dintre traseele tubului sunt altele.</p>
+    </div>
+    <div class="head-side">
+      <div class="thermo"><span class="lab">Termometru</span><span class="val mono" id="tRead">—</span></div>
+      <button class="btn" id="resetBtn" type="button">Reîncepe lucrarea</button>
+    </div>
+  </header>
+
+  <details class="panel theory">
+    <summary>Principiu și sarcină de lucru</summary>
+    <div class="theory-body">
+      <p>Difuzorul trimite sunetul spre microfon pe două traseuri: unul fix și unul care trece prin tubul mobil. Undele au aceeași frecvență, iar amplitudinea lor rezultată depinde de diferența de drum δ.</p>
+      <p class="formula mono">A = √(A₁² + A₂² + 2·A₁·A₂·cos Δφ), cu Δφ = 2π·δ/λ</p>
+      <ul>
+        <li>Maxim de interferență: δ = n·λ, adică un număr par de semilungimi de undă.</li>
+        <li>Minim de interferență: δ = (2n + 1)·λ/2, adică un număr impar de semilungimi de undă.</li>
+        <li>Dacă tubul mobil se deplasează cu x, diferența de drum se modifică cu 2x. Între două minime consecutive 2x = λ.</li>
+      </ul>
+      <p class="formula mono">V = λ·ν = 2·x·ν</p>
+      <p><strong>Sarcină.</strong> Alege cel puțin trei frecvențe diferite. Pentru fiecare notează 3 până la 5 minime consecutive, adaugă determinarea în tabel și compară viteza medie cu valoarea teoretică la temperatura din laborator.</p>
+    </div>
+  </details>
+
+  <ol class="steps" id="steps">
+    <li>Pornește generatorul și osciloscopul</li>
+    <li>Conectează generatorul la cască și microfonul la osciloscop</li>
+    <li>Reglează intensitatea și focalizarea</li>
+    <li>Deplasează tubul și notează minimele</li>
+    <li>Completează tabelul cu cel puțin 3 frecvențe</li>
+  </ol>
+  <p class="hint" role="status" aria-live="polite"><b>Pasul următor</b><span id="hint"></span></p>
+
+  <div class="bench">
+    <section class="panel" aria-labelledby="gen-h">
+      <h2 id="gen-h">Generator de audiofrecvență</h2>
+      <div class="stack">
+        <button class="sw" id="genPower" type="button" aria-pressed="false"><span class="sw-track"><span class="sw-knob"></span></span><span class="sw-label">Alimentare</span><span class="sw-state">OPRIT</span></button>
+        <div class="lcd off" id="lcd" aria-live="off">—</div>
+        <div class="field">
+          <div class="val-line"><label class="flabel" for="freq">Frecvența ν</label><span class="mono" id="freqTxt">1000 – 5000 Hz</span></div>
+          <input type="range" id="freq" min="1000" max="5000" step="10" value="2000">
+          <div class="row">
+            <button class="btn" type="button" data-fstep="-100" aria-label="Scade frecvența cu 100 de herți">−100</button>
+            <button class="btn" type="button" data-fstep="-10" aria-label="Scade frecvența cu 10 herți">−10</button>
+            <button class="btn" type="button" data-fstep="10" aria-label="Crește frecvența cu 10 herți">+10</button>
+            <button class="btn" type="button" data-fstep="100" aria-label="Crește frecvența cu 100 de herți">+100</button>
+          </div>
+        </div>
+        <button class="sw" id="genCable" type="button" aria-pressed="false"><span class="sw-track"><span class="sw-knob"></span></span><span class="sw-label">Generator → cască</span><span class="sw-state">DECONECTAT</span></button>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="osc-h">
+      <div class="scope-grid">
+        <div class="scope-head">
+          <h2 id="osc-h" style="margin:0">Osciloscop</h2>
+          <div style="min-width:200px;flex:0 1 240px"><button class="sw" id="scopePower" type="button" aria-pressed="false"><span class="sw-track"><span class="sw-knob"></span></span><span class="sw-label">Alimentare</span><span class="sw-state">OPRIT</span></button></div>
+        </div>
+        <canvas class="screen" id="scope" role="img" aria-label="Ecranul osciloscopului, oprit"></canvas>
+        <div class="readout" id="vppRead">—</div>
+        <div class="knobs">
+          <div class="field"><div class="val-line"><label class="flabel" for="intensity">Intensitate</label><span class="mono" id="intTxt"></span></div><input type="range" id="intensity" min="0" max="100" step="1" value="15"></div>
+          <div class="field"><div class="val-line"><label class="flabel" for="focus">Focalizare</label><span class="mono" id="focTxt"></span></div><input type="range" id="focus" min="0" max="100" step="1" value="15"></div>
+          <div class="field"><span class="flabel" id="vdivLbl">Sensibilitate (mV/div)</span><div class="seg" id="vdivSeg" role="group" aria-labelledby="vdivLbl"><button type="button" data-v="20" aria-pressed="false">20</button><button type="button" data-v="50" aria-pressed="true">50</button><button type="button" data-v="100" aria-pressed="false">100</button><button type="button" data-v="200" aria-pressed="false">200</button></div></div>
+        </div>
+        <button class="sw" id="micCable" type="button" aria-pressed="false" style="max-width:340px"><span class="sw-track"><span class="sw-knob"></span></span><span class="sw-label">Microfon → osciloscop</span><span class="sw-state">DECONECTAT</span></button>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="tub-h">
+    <h2 id="tub-h">Tubul König și rigla gradată</h2>
+    <svg class="tube-svg" id="tubeSvg" viewBox="0 0 540 254" role="img" aria-label="Schema tubului König: difuzor, microfon, tub fix, tub mobil și riglă gradată în centimetri">
+      <rect x="12" y="56" width="20" height="28" rx="2" class="dev-fill"/>
+      <polygon points="32,58 54,44 54,96 32,82" class="dev-fill"/>
+      <rect x="54" y="66" width="14" height="8" class="dev-fill"/>
+      <text x="6" y="116" class="svg-label">Difuzor</text>
+      <circle cx="38" cy="180" r="11" class="dev-fill"/>
+      <rect x="48" y="176" width="20" height="8" class="dev-fill"/>
+      <text x="6" y="208" class="svg-label">Microfon</text>
+      <path d="M195 70 H66 V180 H195" class="tube-out"/>
+      <path d="M195 70 H66 V180 H195" class="tube-in"/>
+      <path id="mobOut" class="mob-out" d=""/>
+      <path id="mobIn" class="tube-in" d=""/>
+      <text x="84" y="128" class="svg-label">Traseu fix</text>
+      <text x="200" y="52" class="svg-label acc">Tub mobil</text>
+      <line id="ptrLine" class="ptr" x1="250" y1="125" x2="250" y2="198"/>
+      <polygon id="ptrTri" class="ptr-tri" points="245,199 255,199 250,210"/>
+      <rect x="250" y="212" width="264" height="14" class="ruler-band"/>
+      <g id="ticks"></g>
+      <g id="flags"></g>
+      <text x="244" y="224" text-anchor="end" class="svg-label">Riglă (cm)</text>
+    </svg>
+    <div class="tube-ctl">
+      <div class="stack" style="gap:6px">
+        <span class="flabel">Poziția tubului mobil</span>
+        <div class="big" id="xRead">0,0 cm</div>
+        <div class="sub-read" id="dRead">δ = 2x = 0,0 cm</div>
+      </div>
+      <div class="stack" style="gap:10px">
+        <label class="sr" for="xRange">Poziția tubului mobil în centimetri</label>
+        <input type="range" id="xRange" min="0" max="60" step="0.1" value="0">
+        <div class="row">
+          <button class="btn" type="button" data-xstep="-1">−1 cm</button>
+          <button class="btn" type="button" data-xstep="-0.1">−0,1 cm</button>
+          <button class="btn" type="button" data-xstep="0.1">+0,1 cm</button>
+          <button class="btn" type="button" data-xstep="1">+1 cm</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="measure">
+    <section class="panel" aria-labelledby="chart-h">
+      <h2 id="chart-h">Amplitudinea semnalului la microfon</h2>
+      <canvas class="chart" id="chart" role="img" aria-label="Grafic: amplitudinea vârf la vârf în funcție de poziția tubului"></canvas>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">Punctele apar pe măsură ce deplasezi tubul. Dacă semnalul iese de pe ecran, punctul nu se înregistrează.</p>
+    </section>
+    <section class="panel" aria-labelledby="mark-h">
+      <h2 id="mark-h">Minime notate</h2>
+      <div class="stack">
+        <div class="sub-read" id="curFreq">—</div>
+        <button class="btn" id="markBtn" type="button">Notează minim</button>
+        <ul class="chips" id="minList" aria-label="Pozițiile minimelor notate"></ul>
+        <button class="btn primary" id="addRowBtn" type="button" disabled>Adaugă în tabel</button>
+        <p class="note" id="note" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="tab-h">
+    <h2 id="tab-h">Tabelul de măsurători</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Nr. det.</th><th>ν (Hz)</th><th>X₁ (m)</th><th>X₂ (m)</th><th>X₃ (m)</th><th>X₄ (m)</th>
+          <th>V₁ (m/s)</th><th>V₂ (m/s)</th><th>V₃ (m/s)</th><th>V₄ (m/s)</th><th>Vm (m/s)</th><th><span class="sr">Șterge</span></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-actions">
+      <button class="btn" id="copyBtn" type="button">Copiază tabelul</button>
+      <span class="muted" id="tableNote" role="status" aria-live="polite" style="font-size:14px"></span>
+    </div>
+    <textarea class="tsv" id="tsv" hidden readonly aria-label="Tabelul ca text, pentru copiere"></textarea>
+    <dl class="results">
+      <div><dt>Viteza medie măsurată</dt><dd id="resVm">—</dd></div>
+      <div><dt>Abaterea standard a valorilor Vᵢ</dt><dd id="resSd">—</dd></div>
+      <div><dt>Temperatura din laborator</dt><dd id="resT">—</dd></div>
+      <div><dt>Viteza teoretică, 331,3·√(1 + T/273,15)</dt><dd id="resVt">—</dd></div>
+      <div><dt>Eroarea relativă</dt><dd id="resErr">—</dd></div>
+    </dl>
+    <p class="res-msg" id="resMsg"></p>
+  </section>
+
+  <p class="foot">Simulare după lucrarea 4 din îndrumarul de laborator: determinarea vitezei sunetului în aer prin metoda interferenței cu ajutorul tubului König.</p>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id);};
+function fmt(n,d){if(d===undefined)d=1;return Number(n).toFixed(d).replace('.',',');}
+function clamp(v,a,b){return Math.min(b,Math.max(a,v));}
+var K=4.4, RX=250, S={}, warmTimer=null, resetTimer=null, tableTimer=null;
+var reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+function newLab(){
+  if(warmTimer){clearTimeout(warmTimer);warmTimer=null;}
+  S={genOn:false,scopeOn:false,scopeReady:false,genConn:false,micConn:false,
+     freq:2000,x:0,intensity:15,focus:15,vdiv:50,
+     T:Math.round((18+Math.random()*7)*2)/2,
+     d0:1+Math.random()*14,
+     focusOpt:45+Math.round(Math.random()*25),
+     seed:Math.random()*100,
+     scans:{},minima:[],rows:[],note:''};
+}
+
+/* ---------- fizica ---------- */
+function speed(){return 331.3*Math.sqrt(1+S.T/273.15);}
+function lamCm(f){return speed()/f*100;}
+function amps(f){var g=1+0.2*Math.sin(f/650),a1=80*g;return [a1,0.9*a1];}
+function peak(x,f){
+  var a=amps(f),dphi=2*Math.PI*(2*x+S.d0)/lamCm(f);
+  return Math.sqrt(Math.max(0,a[0]*a[0]+a[1]*a[1]+2*a[0]*a[1]*Math.cos(dphi)));
+}
+function noise(x,f){var n=Math.sin(Math.round(x*10)*12.9898+f*0.0785+S.seed)*43758.5453;return n-Math.floor(n)-0.5;}
+function vpp(x,f){return Math.max(0,2*peak(x,f)+noise(x,f)*3);}
+function hasSignal(){return S.genOn&&S.genConn&&S.micConn&&S.scopeOn&&S.scopeReady;}
+function clippedAt(x){return peak(x,S.freq)/S.vdiv>4;}
+function maxPeakDiv(){var a=amps(S.freq);return (a[0]+a[1])/S.vdiv;}
+function focusOk(){return Math.abs(S.focus-S.focusOpt)<=10;}
+function recordScan(){
+  if(!hasSignal()||clippedAt(S.x))return;
+  var m=S.scans[S.freq]||(S.scans[S.freq]={});
+  m[Math.round(S.x*10)]=vpp(S.x,S.freq);
+}
+
+/* ---------- desen ---------- */
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function sizeCanvas(cv){
+  var dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(!w||!h)return null;
+  var pw=Math.round(w*dpr),ph=Math.round(h*dpr);
+  if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph;}
+  var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx:ctx,w:w,h:h};
+}
+function drawScope(){
+  var c=sizeCanvas($('scope'));if(!c)return;
+  var ctx=c.ctx,w=c.w,h=c.h,i,x,y;
+  var bg=css('--scope-bg'),grid=css('--scope-grid'),axis=css('--scope-axis'),tr=css('--scope-trace');
+  var dw=w/10,dh=h/8,cy=h/2;
+  ctx.clearRect(0,0,w,h);ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+  ctx.lineWidth=1;ctx.strokeStyle=grid;ctx.beginPath();
+  for(i=1;i<10;i++){x=Math.round(i*dw)+0.5;ctx.moveTo(x,0);ctx.lineTo(x,h);}
+  for(i=1;i<8;i++){y=Math.round(i*dh)+0.5;ctx.moveTo(0,y);ctx.lineTo(w,y);}
+  ctx.stroke();
+  ctx.strokeStyle=axis;ctx.beginPath();
+  ctx.moveTo(Math.round(w/2)+0.5,0);ctx.lineTo(Math.round(w/2)+0.5,h);
+  ctx.moveTo(0,Math.round(cy)+0.5);ctx.lineTo(w,Math.round(cy)+0.5);
+  for(i=0;i<=50;i++){x=Math.round(i*dw/5)+0.5;ctx.moveTo(x,cy-3);ctx.lineTo(x,cy+3);}
+  for(i=0;i<=40;i++){y=Math.round(i*dh/5)+0.5;ctx.moveTo(w/2-3,y);ctx.lineTo(w/2+3,y);}
+  ctx.stroke();
+  var label='Ecranul osciloscopului, oprit';
+  if(S.scopeOn&&!S.scopeReady)label='Osciloscopul se încălzește';
+  if(S.scopeOn&&S.scopeReady){
+    var sig=hasSignal(),pk=sig?peak(S.x,S.freq)/S.vdiv:0;
+    var alpha=S.intensity<=0?0:0.08+0.92*S.intensity/100;
+    var blur=Math.abs(S.focus-S.focusOpt)/6;
+    ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=tr;ctx.shadowColor=tr;
+    ctx.shadowBlur=2+blur*2.2;ctx.lineWidth=1.4+blur*0.4;ctx.lineJoin='round';
+    ctx.beginPath();
+    var N=Math.max(2,Math.round(w/2));
+    for(i=0;i<=N;i++){
+      var t=i/N*10,yd=pk*Math.sin(2*Math.PI*3*t/10);
+      if(!reduce)yd+=(Math.random()-0.5)*(sig?0.03:0.02);
+      yd=clamp(yd,-4,4);
+      var px=i/N*w,py=cy-yd*dh;
+      if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py);
+    }
+    ctx.stroke();ctx.restore();
+    ctx.save();ctx.globalAlpha=0.85;ctx.fillStyle=tr;ctx.font='12px "IBM Plex Mono",monospace';
+    ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.fillText(S.vdiv+' mV/div',8,h-8);
+    if(sig){ctx.textAlign='right';ctx.fillText(Math.round(300000/S.freq)+' µs/div',w-8,h-8);}
+    ctx.restore();
+    label=sig?'Ecranul osciloscopului: semnal sinusoidal':'Ecranul osciloscopului: linie fără semnal';
+  }
+  $('scope').setAttribute('aria-label',label);
+}
+function drawChart(){
+  var c=sizeCanvas($('chart'));if(!c)return;
+  var ctx=c.ctx,w=c.w,h=c.h,i;
+  var ink=css('--ink'),muted=css('--muted'),line=css('--line'),acc=css('--accent'),accS=css('--accent-strong');
+  var pad={l:46,r:12,t:12,b:34},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;
+  var X=function(v){return pad.l+v/60*pw;},Y=function(v){return pad.t+ph-(v/500)*ph;};
+  ctx.clearRect(0,0,w,h);
+  ctx.font='11px "IBM Plex Mono",monospace';ctx.textBaseline='middle';ctx.textAlign='right';
+  ctx.lineWidth=1;
+  for(i=0;i<=5;i++){
+    var yv=i*100;ctx.strokeStyle=line;ctx.beginPath();ctx.moveTo(pad.l,Math.round(Y(yv))+0.5);ctx.lineTo(w-pad.r,Math.round(Y(yv))+0.5);ctx.stroke();
+    ctx.fillStyle=muted;ctx.fillText(String(yv),pad.l-6,Y(yv));
+  }
+  ctx.textAlign='center';ctx.textBaseline='top';
+  for(i=0;i<=6;i++){ctx.fillStyle=muted;ctx.fillText(String(i*10),X(i*10),pad.t+ph+6);}
+  ctx.textAlign='right';ctx.fillText('x (cm)',w-pad.r,pad.t+ph+20);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText('Vvv (mV)',4,10);
+  var m=S.scans[S.freq]||{},keys=Object.keys(m).map(Number).sort(function(a,b){return a-b;});
+  ctx.strokeStyle=acc;ctx.lineWidth=1.6;ctx.beginPath();
+  for(i=0;i<keys.length;i++){
+    var px=X(keys[i]/10),py=Y(Math.min(500,m[keys[i]]));
+    if(i>0&&keys[i]-keys[i-1]<=3)ctx.lineTo(px,py);else ctx.moveTo(px,py);
+  }
+  ctx.stroke();
+  ctx.fillStyle=acc;
+  for(i=0;i<keys.length;i++){ctx.beginPath();ctx.arc(X(keys[i]/10),Y(Math.min(500,m[keys[i]])),2.2,0,6.2832);ctx.fill();}
+  var mins=S.minima.slice().sort(function(a,b){return a-b;});
+  ctx.setLineDash([4,3]);ctx.strokeStyle=accS;ctx.lineWidth=1.5;ctx.font='600 11px "IBM Plex Mono",monospace';ctx.textAlign='center';
+  mins.forEach(function(p,k){
+    ctx.beginPath();ctx.moveTo(X(p),pad.t+12);ctx.lineTo(X(p),pad.t+ph);ctx.stroke();
+    ctx.setLineDash([]);ctx.fillStyle=accS;ctx.textBaseline='alphabetic';ctx.fillText('M'+(k+1),X(p),pad.t+9);ctx.setLineDash([4,3]);
+  });
+  ctx.setLineDash([]);ctx.strokeStyle=ink;ctx.lineWidth=1;ctx.globalAlpha=0.55;
+  ctx.beginPath();ctx.moveTo(Math.round(X(S.x))+0.5,pad.t+12);ctx.lineTo(Math.round(X(S.x))+0.5,pad.t+ph);ctx.stroke();ctx.globalAlpha=1;
+}
+function updateTube(){
+  var cx=195+K*S.x,xe=RX+K*S.x;
+  var d='M190 70 H'+cx+' A55 55 0 0 1 '+cx+' 180 H190';
+  $('mobOut').setAttribute('d',d);$('mobIn').setAttribute('d',d);
+  var pl=$('ptrLine');pl.setAttribute('x1',xe);pl.setAttribute('x2',xe);
+  $('ptrTri').setAttribute('points',(xe-5)+',199 '+(xe+5)+',199 '+xe+',210');
+  var mins=S.minima.slice().sort(function(a,b){return a-b;}),g='';
+  mins.forEach(function(p,k){var fx=RX+K*p;
+    g+='<line class="flag" x1="'+fx+'" y1="204" x2="'+fx+'" y2="212"/><text class="flag-t" x="'+fx+'" y="196" text-anchor="middle">M'+(k+1)+'</text>';});
+  $('flags').innerHTML=g;
+}
+function buildTicks(){
+  var h='';
+  for(var c=0;c<=60;c++){
+    var x=RX+K*c,len=c%10===0?10:(c%5===0?7:4);
+    h+='<line class="tick" x1="'+x+'" y1="212" x2="'+x+'" y2="'+(212+len)+'"/>';
+    if(c%10===0)h+='<text class="svg-num" x="'+x+'" y="244" text-anchor="middle">'+c+'</text>';
+  }
+  $('ticks').innerHTML=h;
+}
+
+/* ---------- interfață ---------- */
+function setSw(id,on,onT,offT){
+  var el=$(id);el.setAttribute('aria-pressed',on?'true':'false');
+  el.querySelector('.sw-state').textContent=on?onT:offT;
+}
+function hintText(){
+  if(!S.genOn&&!S.scopeOn)return 'Pornește generatorul de audiofrecvență și osciloscopul.';
+  if(!S.scopeOn)return 'Pornește osciloscopul și așteaptă apariția liniei luminoase.';
+  if(!S.scopeReady)return 'Osciloscopul se încălzește. Așteaptă câteva secunde.';
+  if(!S.genOn)return 'Pornește generatorul de audiofrecvență.';
+  if(!S.genConn)return 'Conectează generatorul la cască.';
+  if(!S.micConn)return 'Conectează microfonul la intrarea osciloscopului.';
+  if(S.intensity<40)return 'Linia luminoasă este prea slabă. Mărește intensitatea.';
+  if(!focusOk())return 'Linia este neclară. Reglează focalizarea.';
+  if(clippedAt(S.x))return 'Semnalul iese de pe ecran în acest punct. Mărește sensibilitatea (mV/div) sau treci spre un minim.';
+  if(maxPeakDiv()<1.2)return 'Semnalul este prea mic pe ecran. Scade valoarea mV/div.';
+  if(S.minima.length===0&&S.rows.length===0)return 'Deplasează tubul mobil și urmărește amplitudinea. Notează poziția fiecărui minim.';
+  if(S.minima.length>0&&S.minima.length<3)return 'Notează încă '+(3-S.minima.length)+(3-S.minima.length===1?' minim':' minime')+' consecutive (minimum 3 pentru o determinare).';
+  if(S.minima.length>=3)return 'Adaugă determinarea în tabel sau notează încă un minim (maximum 5).';
+  if(S.rows.length<3)return 'Schimbă frecvența și repetă măsurătoarea. Folosește cel puțin 3 frecvențe.';
+  return 'Ai suficiente determinări. Compară viteza medie cu valoarea teoretică.';
+}
+function renderSteps(){
+  var done=[S.genOn&&S.scopeOn&&S.scopeReady,S.genConn&&S.micConn,S.scopeReady&&S.intensity>=40&&focusOk(),S.minima.length>=3||S.rows.length>=1,S.rows.length>=3];
+  var cur=done.indexOf(false),lis=$('steps').children;
+  for(var i=0;i<lis.length;i++){
+    lis[i].setAttribute('data-state',done[i]?'done':(i===cur?'current':'todo'));
+    if(i===cur)lis[i].setAttribute('aria-current','step');else lis[i].removeAttribute('aria-current');
+  }
+}
+function renderMinima(){
+  var mins=S.minima.slice().sort(function(a,b){return a-b;}),h='';
+  mins.forEach(function(p,k){
+    h+='<li><span>M'+(k+1)+' · '+fmt(p,1)+' cm</span><button class="icon-btn" type="button" data-rm="'+p+'" aria-label="Șterge minimul M'+(k+1)+'">×</button></li>';
+  });
+  $('minList').innerHTML=h;
+  $('curFreq').textContent=S.genOn?'Frecvența curentă: ν = '+S.freq+' Hz':'Generatorul este oprit';
+  $('markBtn').textContent='Notează minim la x = '+fmt(S.x,1)+' cm';
+  $('markBtn').disabled=!hasSignal()||S.minima.length>=5;
+  $('addRowBtn').disabled=S.minima.length<3;
+  $('addRowBtn').textContent='Adaugă în tabel'+(S.genOn?' (ν = '+S.freq+' Hz)':'');
+  $('note').textContent=S.note;
+}
+function renderTable(){
+  var tb=$('tbody');
+  if(!S.rows.length){tb.innerHTML='<tr><td class="empty" colspan="12">Nicio determinare încă. Notează minimele și apasă „Adaugă în tabel”.</td></tr>';return;}
+  var h='',k;
+  S.rows.forEach(function(r,i){
+    h+='<tr><td>'+(i+1)+'</td><td>'+r.f+'</td>';
+    for(k=0;k<4;k++)h+='<td>'+(r.xs[k]!==undefined?fmt(r.xs[k],3):'—')+'</td>';
+    for(k=0;k<4;k++)h+='<td>'+(r.vs[k]!==undefined?fmt(r.vs[k],1):'—')+'</td>';
+    h+='<td class="vm">'+fmt(r.vm,1)+'</td><td><button class="icon-btn" type="button" data-del="'+i+'" aria-label="Șterge determinarea '+(i+1)+'">×</button></td></tr>';
+  });
+  tb.innerHTML=h;
+}
+function renderResults(){
+  $('resT').textContent=fmt(S.T,1)+' °C';
+  var all=[];S.rows.forEach(function(r){r.vs.forEach(function(v){all.push(v);});});
+  if(!all.length){['resVm','resSd','resVt','resErr'].forEach(function(id){$(id).textContent='—';});$('resMsg').textContent='';return;}
+  var mean=all.reduce(function(a,b){return a+b;},0)/all.length,sd=0;
+  if(all.length>1)sd=Math.sqrt(all.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/(all.length-1));
+  var vt=331.3*Math.sqrt(1+S.T/273.15),err=Math.abs(mean-vt)/vt*100;
+  $('resVm').textContent=fmt(mean,1)+' m/s';
+  $('resSd').textContent=all.length>1?'± '+fmt(sd,1)+' m/s':'—';
+  $('resVt').textContent=fmt(vt,1)+' m/s';
+  $('resErr').textContent=fmt(err,1)+' %';
+  var msg=S.rows.length<3?'Mai ai nevoie de '+(3-S.rows.length)+(3-S.rows.length===1?' determinare':' determinări')+' la alte frecvențe.':
+    (err<2?'Eroare mică. Măsurătorile sunt bune.':'Eroarea este mai mare de 2 %. Verifică poziția minimelor și repetă măsurătorile cu sensibilitate mai mare.');
+  $('resMsg').textContent=msg;
+}
+function updateAll(){
+  setSw('genPower',S.genOn,'PORNIT','OPRIT');
+  setSw('scopePower',S.scopeOn,'PORNIT','OPRIT');
+  setSw('genCable',S.genConn,'CONECTAT','DECONECTAT');
+  setSw('micCable',S.micConn,'CONECTAT','DECONECTAT');
+  $('freq').value=S.freq;$('freq').disabled=!S.genOn;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-fstep]'),function(b){b.disabled=!S.genOn;});
+  var lcd=$('lcd');lcd.className='lcd'+(S.genOn?'':' off');
+  lcd.innerHTML=S.genOn?S.freq+'<small>Hz</small>':'—';
+  $('intensity').value=S.intensity;$('focus').value=S.focus;
+  $('intensity').disabled=!S.scopeOn;$('focus').disabled=!S.scopeOn;
+  $('intTxt').textContent=S.scopeOn?S.intensity+' %':'—';
+  $('focTxt').textContent=S.scopeOn?S.focus+' %':'—';
+  Array.prototype.forEach.call($('vdivSeg').children,function(b){
+    b.setAttribute('aria-pressed',Number(b.getAttribute('data-v'))===S.vdiv?'true':'false');b.disabled=!S.scopeOn;
+  });
+  $('xRange').value=S.x;
+  $('xRead').textContent=fmt(S.x,1)+' cm';
+  $('dRead').textContent='δ = 2x = '+fmt(2*S.x,1)+' cm';
+  $('tRead').textContent=fmt(S.T,1)+' °C';
+  recordScan();
+  var r=$('vppRead');
+  if(!S.scopeOn)r.textContent='Osciloscop oprit';
+  else if(!S.scopeReady)r.textContent='Se încălzește…';
+  else if(!hasSignal())r.textContent='Fără semnal la intrare';
+  else if(clippedAt(S.x))r.textContent='Semnalul iese de pe ecran. Mărește mV/div.';
+  else{var v=vpp(S.x,S.freq);r.textContent='Vvv = '+fmt(v/S.vdiv,2)+' div × '+S.vdiv+' mV/div = '+Math.round(v)+' mV';}
+  $('hint').textContent=hintText();
+  renderSteps();renderMinima();renderTable();renderResults();updateTube();drawScope();drawChart();
+}
+
+/* ---------- acțiuni ---------- */
+function setNote(t){S.note=t;$('note').textContent=t;}
+function setFreq(f){
+  f=clamp(Math.round(f/10)*10,1000,5000);
+  if(f===S.freq)return;
+  S.freq=f;
+  if(S.minima.length){S.minima=[];S.note='Frecvența s-a schimbat, minimele notate au fost șterse.';}
+  updateAll();
+}
+function setX(x){S.x=clamp(Math.round(x*10)/10,0,60);updateAll();}
+function addMinimum(){
+  if(!hasSignal())return;
+  if(S.minima.length>=5){setNote('Poți nota cel mult 5 minime pentru o determinare.');return;}
+  for(var i=0;i<S.minima.length;i++){if(Math.abs(S.minima[i]-S.x)<1){setNote('Ai notat deja un minim în apropierea acestei poziții.');return;}}
+  var a=amps(S.freq),ratio=peak(S.x,S.freq)/(a[0]+a[1]);
+  S.minima.push(S.x);
+  setNote(ratio>0.22?'Amplitudinea aici este încă mare. Probabil nu ești exact la un minim, verifică poziția.':'');
+  updateAll();
+}
+function addRow(){
+  if(S.minima.length<3)return;
+  if(S.rows.length>=8){setNote('Tabelul are deja 8 determinări. Șterge una ca să adaugi alta.');return;}
+  var p=S.minima.slice().sort(function(a,b){return a-b;}),xs=[],vs=[];
+  for(var i=0;i<p.length-1&&i<4;i++){var x=(p[i+1]-p[i])/100;xs.push(x);vs.push(2*x*S.freq);}
+  var vm=vs.reduce(function(a,b){return a+b;},0)/vs.length;
+  S.rows.push({f:S.freq,xs:xs,vs:vs,vm:vm});
+  S.minima=[];S.note='Determinarea a fost adăugată. Schimbă frecvența pentru următoarea.';
+  updateAll();
+}
+function tsv(){
+  var head=['Nr. det.','ν (Hz)','X1 (m)','X2 (m)','X3 (m)','X4 (m)','V1 (m/s)','V2 (m/s)','V3 (m/s)','V4 (m/s)','Vm (m/s)'],lines=[head.join('\t')];
+  S.rows.forEach(function(r,i){
+    var c=[i+1,r.f],k;
+    for(k=0;k<4;k++)c.push(r.xs[k]!==undefined?fmt(r.xs[k],3):'');
+    for(k=0;k<4;k++)c.push(r.vs[k]!==undefined?fmt(r.vs[k],1):'');
+    c.push(fmt(r.vm,1));lines.push(c.join('\t'));
+  });
+  return lines.join('\n');
+}
+function tableMsg(t){
+  $('tableNote').textContent=t;
+  if(tableTimer)clearTimeout(tableTimer);
+  tableTimer=setTimeout(function(){$('tableNote').textContent='';},4000);
+}
+function copyTable(){
+  if(!S.rows.length){tableMsg('Tabelul este gol.');return;}
+  var text=tsv(),ta=$('tsv');
+  var fallback=function(){ta.hidden=false;ta.value=text;ta.focus();ta.select();tableMsg('Selectează textul și copiază-l cu Ctrl+C.');};
+  try{
+    navigator.clipboard.writeText(text).then(function(){ta.hidden=true;tableMsg('Tabel copiat.');},fallback);
+  }catch(e){fallback();}
+}
+function doReset(){
+  newLab();$('resetBtn').textContent='Reîncepe lucrarea';$('tsv').hidden=true;$('tableNote').textContent='';updateAll();
+}
+
+/* ---------- legături ---------- */
+$('genPower').addEventListener('click',function(){S.genOn=!S.genOn;updateAll();});
+$('genCable').addEventListener('click',function(){S.genConn=!S.genConn;updateAll();});
+$('micCable').addEventListener('click',function(){S.micConn=!S.micConn;updateAll();});
+$('scopePower').addEventListener('click',function(){
+  S.scopeOn=!S.scopeOn;S.scopeReady=false;
+  if(warmTimer){clearTimeout(warmTimer);warmTimer=null;}
+  if(S.scopeOn){warmTimer=setTimeout(function(){S.scopeReady=true;warmTimer=null;updateAll();},1500);}
+  updateAll();
+});
+$('freq').addEventListener('input',function(){setFreq(Number(this.value));});
+Array.prototype.forEach.call(document.querySelectorAll('[data-fstep]'),function(b){
+  b.addEventListener('click',function(){setFreq(S.freq+Number(b.getAttribute('data-fstep')));});
+});
+$('intensity').addEventListener('input',function(){S.intensity=Number(this.value);updateAll();});
+$('focus').addEventListener('input',function(){S.focus=Number(this.value);updateAll();});
+$('vdivSeg').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-v]');if(!b||b.disabled)return;
+  S.vdiv=Number(b.getAttribute('data-v'));updateAll();
+});
+$('xRange').addEventListener('input',function(){setX(Number(this.value));});
+Array.prototype.forEach.call(document.querySelectorAll('[data-xstep]'),function(b){
+  b.addEventListener('click',function(){setX(S.x+Number(b.getAttribute('data-xstep')));});
+});
+$('markBtn').addEventListener('click',addMinimum);
+$('addRowBtn').addEventListener('click',addRow);
+$('minList').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-rm]');if(!b)return;
+  var p=Number(b.getAttribute('data-rm'));
+  S.minima=S.minima.filter(function(v){return v!==p;});setNote('');updateAll();
+});
+$('tbody').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-del]');if(!b)return;
+  S.rows.splice(Number(b.getAttribute('data-del')),1);updateAll();
+});
+$('copyBtn').addEventListener('click',copyTable);
+$('resetBtn').addEventListener('click',function(){
+  var b=$('resetBtn');
+  if(resetTimer){clearTimeout(resetTimer);resetTimer=null;doReset();return;}
+  b.textContent='Sigur? Apasă din nou';
+  resetTimer=setTimeout(function(){resetTimer=null;b.textContent='Reîncepe lucrarea';},3500);
+});
+
+/* ---------- pornire ---------- */
+newLab();buildTicks();updateAll();
+if(window.ResizeObserver){
+  var ro=new ResizeObserver(function(){drawScope();drawChart();});
+  ro.observe($('scope'));ro.observe($('chart'));
+}else{window.addEventListener('resize',function(){drawScope();drawChart();});}
+if(!reduce){setInterval(function(){if(S.scopeOn&&S.scopeReady)drawScope();},140);}
+try{
+  new MutationObserver(function(){drawScope();drawChart();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  var mq=window.matchMedia('(prefers-color-scheme: dark)');
+  if(mq.addEventListener)mq.addEventListener('change',function(){drawScope();drawChart();});
+}catch(e){}
+})();
+</script>
+
+</body></html>
